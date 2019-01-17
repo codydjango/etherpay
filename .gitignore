@@ -1,0 +1,25 @@
+pretix.cfg
+*.pyc
+*.pyo
+*.db
+.idea
+.DS_Store
+.coverage
+.grunt
+.sass-cache
+node_modules
+dumps
+backups
+venv
+# logs
+ssl
+tmp
+tmp.sql
+dump.sql
+nohup.out
+local_settings.py
+libpeerconnection.log
+Gemfile.lock
+media
+*.css.map
+
