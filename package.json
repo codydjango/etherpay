@@ -1,0 +1,17 @@
+{
+    "name": "ethdev",
+    "version": "0.1.0",
+    "private": false,
+    "dependencies": {
+        "react": "^16.7.0",
+        "react-dom": "^16.7.0",
+        "web3": "^1.0.0-beta.41"
+    },
+    "scripts": {
+        "start": "./node_modules/.bin/parcel src/web/index.html --open",
+        "build": "./node_modules/.bin/parcel build src/web/index.html"
+    },
+    "devDependencies": {
+        "parcel-bundler": "^1.10.3"
+    }
+}
