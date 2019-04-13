@@ -4,13 +4,17 @@
 run `npm install`
 
 ### Develop
+
+##### HTML5 client
 run `npm run start`
+
+##### Flask API
+run `pipenv shell`
+run `pip install src/backend/requirements.txt`
+run `npm run server`
 
 ### Build
 run `npm run build`
 
 ### Notes
-
-        "babel-core": "^6.26.3",
-        "babel-preset-env": "^1.7.0",
-        "babel-preset-react": "^6.24.1",
+0x35122239ed172a4537D382AC449A6941a94e5E51
