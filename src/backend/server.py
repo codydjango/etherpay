@@ -4,16 +4,6 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-@app.route('/')
-def hello_world():
-    response = jsonify({
-        "status": "Hello, World!",
-        "payload": {}
-    })
-
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
-
 
 def round_down(n, d=8):
     d = int('1' + ('0' * d))
@@ -31,16 +21,15 @@ def convert():
     data = json[0]
     ether_price = data['price_{0}'.format(currency)]
     conversion_rate = round_down(float(ether_price) / float(1), 9)
-    amount_in_ether = round_down(original_amount / conversion_rate, 9)
+    amount_in_ether = round_down(float(original_amount) / conversion_rate, 9)
 
     response = jsonify({
         "status": "success",
         "payload": {
-            "conversionRate": conversion_rate,
-            "originalAmount": original_amount,
-            "originalCurrency": currency,
-            "etherPrice": ether_price,
-            "amountInEther": amount_in_ether,
+            "originalAmount": str(original_amount),
+            "originalCurrency": str(currency),
+            "etherPrice": str(ether_price),
+            "amountInEther": str(amount_in_ether),
         }
     })
 
@@ -69,4 +58,4 @@ def contracts():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port='8000')
+    app.run(debug=True, host='127.0.0.1', port='8080')
