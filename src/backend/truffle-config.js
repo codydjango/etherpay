@@ -3,7 +3,10 @@ module.exports = {
         development: {
             host: '127.0.0.1',
             port: 7545,
-            network_id: '*'
+            network_id: '*',
+            gas: 4600000
+            // ,           // Gas sent with each transaction (default: ~6700000)
+            // gasPrice: 20000000000,  // 20 gwei (in wei) (default: 100 gwei)
         }
     }
 }
