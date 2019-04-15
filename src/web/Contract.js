@@ -1,19 +1,17 @@
 class Contract {
-    constructor(compiled) {
-        this.instance = new window.web3.eth.Contract(this.getArray(compiled.Etherpay.abi), "0x35122239ed172a4537D382AC449A6941a94e5E51")
+    constructor(abi, address) {
+        this.address = address
+        this.abi = abi
 
-        console.log(this.instance)
-        window.contract = this.instance
-    }
-
-    getArray(abi) {
-        let abiArray = []
-
-        for (let i in abi) {
-            abiArray.push(abi[i])
+        this.options = {
+            defaultGasPrice: '2000000000'
         }
 
-        return abiArray
+        this.instance = new window.web3.eth.Contract(this.abi, this.address, this.options)
+    }
+
+    pay(orderId) {
+        return this.contract.instance.methods.pay(orderId)
     }
 }
 
