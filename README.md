@@ -1,6 +1,7 @@
-# EtherPay Payment Processor
+# EtherPay
+## Ethereum Payment Processor
 
-This is a proof of concept project demonstrating how to process ethereum payments with a Python 3.5 backend.
+This is a proof of concept project demonstrating how to monitor a smart contract for events with a Python 3.5 backend.
 
 ### Installation
 run `npm install`
