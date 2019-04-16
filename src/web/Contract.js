@@ -11,7 +11,7 @@ class Contract {
     }
 
     pay(orderId) {
-        return this.contract.instance.methods.pay(orderId)
+        return this.instance.methods.pay(orderId)
     }
 }
 

@@ -12,31 +12,32 @@ const URL = `http://${DOMAIN}:${PORT}`
 
 const Order = props => {
     console.log('order', props)
-    return (<formset>
-        <h3>Order number: { props.id }</h3>
+    return (<fieldset style={{ marginBottom: '1em' }}>
+        <h3>Order #{ props.id }</h3>
         <h4>Total: ${ `${ props.amount } ${ props.currency }` }</h4>
-    </formset>)
+    </fieldset>)
 }
 
 const Transaction = props => {
     console.log('transaction', props)
     const url = `https://etherscan.io/tx/${ props.transactionHash }`
 
-    return (<formset>
+    return (<fieldset style={{ marginBottom: '1em' }}>
         <p>Success! Your transaction has been broadcast and is going through the process of network confirmation.</p>
         <small>Please wait while your transaction is being confirmed.</small><br />
         <small>View the transaction on <a target="_blank" href={ url }>Etherscan.</a></small>
-    </formset>)
+    </fieldset>)
 }
 
 const Conversion = props => {
-    return (<formset>
+    console.log('Conversion', props)
+    return (<fieldset style={{ marginBottom: '1em' }}>
         <p>
             <strong>Total: { props.amountInEther } ETH</strong><br />
-            <small>Current price of Ether: { props.etherPrice }</small><br />
+            <small>Current ETH price in { props.currency }: ${ props.etherPrice }</small><br />
             <small>Source: <a href="https://coinmarketcap.com/">https://coinmarketcap.com/</a></small>
         </p>
-    </formset>)
+    </fieldset>)
 }
 
 class App extends React.Component {
@@ -44,9 +45,10 @@ class App extends React.Component {
         super(props)
 
         this.state = {
-            order: { id: 3, amount: '80.00', currency: 'CAD' },
+            order: null,
             transaction: null,
-            conversion: null
+            conversion: null,
+            payButtonDisabled: true
         }
 
         this.pay = this.pay.bind(this)
@@ -55,6 +57,7 @@ class App extends React.Component {
 
     componentDidMount() {
         this.getContract()
+        this.getOrder()
     }
 
     async pay() {
@@ -76,13 +79,18 @@ class App extends React.Component {
         body = await response.json()
 
         const orderId = this.state.order.id
-        const { amountInEther, conversionRate, etherPrice } = body.payload
+        const { amountInEther, etherPrice } = body.payload
         const account = defaultAccount
         const value = web3.utils.toWei(amountInEther.toString())
-        const transaction = await this.contract.pay(orderId).send({ from: account, value: value })
+
+        const transaction = await this.contract.pay(orderId).send({
+            to: this.contract.address,
+            from: account,
+            value: value
+        })
 
         this.setState(state => {
-            state.conversion = { amountInEther, conversionRate, etherPrice }
+            state.conversion = { amountInEther, etherPrice }
             state.transaction = transaction
 
             return state
@@ -92,10 +100,11 @@ class App extends React.Component {
     async convert() {
         const response = await fetch(`${ URL }/convert?amount=${ this.state.order.amount }&currency=${ this.state.order.currency }`)
         const body = await response.json()
-        const { amountInEther, conversionRate, etherPrice } = body.payload
+        const { amountInEther, etherPrice } = body.payload
 
         this.setState(state => {
-            state.conversion = { amountInEther, conversionRate, etherPrice }
+            state.conversion = { amountInEther, etherPrice }
+            state.payButtonDisabled = false
             return state
         })
     }
@@ -106,7 +115,25 @@ class App extends React.Component {
             const json = await response.json()
             const { abi, address } = json.payload
 
+            console.log('abi', abi)
+            console.log('address', address)
+
             this.contract = new Contract(abi, address)
+        } catch (err) {
+            console.log(err.message)
+        }
+    }
+
+    async getOrder() {
+        try {
+            const response = await fetch(`${URL}/order`)
+            const json = await response.json()
+            const { id, amount, currency } = json.payload
+
+            this.setState(state => {
+                state.order = { id, amount, currency }
+                return state
+            })
         } catch (err) {
             console.log(err.message)
         }
@@ -118,14 +145,14 @@ class App extends React.Component {
                 <h1>Etherpay payment system</h1>
 
                 { (this.state.order && (<Order { ...this.state.order } />)) }
-                { (this.state.conversion && (<Conversion { ...this.state.conversion } />)) }
+                { (this.state.conversion && (<Conversion currency={ this.state.order.currency } { ...this.state.conversion } />)) }
                 { (this.state.transaction && (<Transaction { ...this.state.transaction } />)) }
 
                 { (this.state.transaction == null) && (
-                <div>
+                <fieldset style={{ marginBottom: '1em' }}>
                     <button onClick={ this.convert }>Convert to Ether</button>
-                    <button onClick={ this.pay }>Pay with MetaMask</button>
-                </div>
+                    <button disabled={ this.state.payButtonDisabled } onClick={ this.pay }>Pay with MetaMask</button>
+                </fieldset>
                 ) }
 
             </div>
