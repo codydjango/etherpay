@@ -4,6 +4,7 @@ import './index.scss'
 import 'babel-polyfill'
 import web3Init from './web3init'
 import Contract from './Contract'
+import { stat } from 'fs';
 
 const DOMAIN = 'localhost'
 const PORT = '8080'
@@ -11,18 +12,33 @@ const URL = `http://${DOMAIN}:${PORT}`
 
 
 const Order = props => {
-    console.log('order', props)
     return (<fieldset style={{ marginBottom: '1em' }}>
-        <h3>Order #{ props.id }</h3>
+        <legend>Order #{ props.id }</legend>
         <h4>Total: ${ `${ props.amount } ${ props.currency }` }</h4>
     </fieldset>)
 }
 
+const Result = props => {
+    let eth
+
+    if (props.wei) {
+        eth = window.web3.utils.fromWei(props.wei)
+    } else {
+        eth = '...'
+    }
+
+    return (<fieldset style={{ marginBottom: '1em' }}>
+        <legend>{ (props.polling) ? 'Waiting' : 'Paid' }</legend>
+        <h4>Total paid : { eth } ETH</h4>
+        <small>Mined in block: { props.blockNumber }</small>
+    </fieldset>)
+}
+
 const Transaction = props => {
-    console.log('transaction', props)
     const url = `https://etherscan.io/tx/${ props.transactionHash }`
 
     return (<fieldset style={{ marginBottom: '1em' }}>
+        <legend>Transaction</legend>
         <p>Success! Your transaction has been broadcast and is going through the process of network confirmation.</p>
         <small>Please wait while your transaction is being confirmed.</small><br />
         <small>View the transaction on <a target="_blank" href={ url }>Etherscan.</a></small>
@@ -30,8 +46,8 @@ const Transaction = props => {
 }
 
 const Conversion = props => {
-    console.log('Conversion', props)
     return (<fieldset style={{ marginBottom: '1em' }}>
+        <legend>Conversion</legend>
         <p>
             <strong>Total: { props.amountInEther } ETH</strong><br />
             <small>Current ETH price in { props.currency }: ${ props.etherPrice }</small><br />
@@ -48,16 +64,23 @@ class App extends React.Component {
             order: null,
             transaction: null,
             conversion: null,
-            payButtonDisabled: true
+            payButtonDisabled: true,
+            polling: false
         }
 
         this.pay = this.pay.bind(this)
         this.convert = this.convert.bind(this)
+        this.startPolling = this.startPolling.bind(this)
+        this.confirmOrder = this.confirmOrder.bind(this)
     }
 
     componentDidMount() {
         this.getContract()
         this.getOrder()
+    }
+
+    get resolved() {
+        return (this.state.order && this.state.order.paid && this.state.order.paid === true)
     }
 
     async pay() {
@@ -89,9 +112,53 @@ class App extends React.Component {
             value: value
         })
 
+        this.startPolling()
+
         this.setState(state => {
             state.conversion = { amountInEther, etherPrice }
             state.transaction = transaction
+
+            return state
+        })
+    }
+
+    startPolling() {
+        let response, body
+
+        this.setState(state => {
+            state.polling = true
+            return state
+        }, () => {
+            this.poll = setInterval(async () => {
+                try {
+                    response = await fetch(`${ URL }/order/${ this.state.order.id }`)
+                    body = await response.json()
+
+                    if (body.status === 'success' && body.payload && body.payload.paid === true) {
+                        this.stopPolling()
+                        this.confirmOrder(body.payload)
+                    }
+                } catch (err) {
+                    console.log('err', err)
+                }
+            }, 1000)
+        })
+    }
+
+    stopPolling() {
+        this.setState(state=> {
+            state.polling = false
+            return state
+        }, () => {
+            clearInterval(this.poll)
+        })
+    }
+
+    confirmOrder(order) {
+        this.setState(state => {
+            state.order.blockNumber = order.block_number
+            state.order.wei = order.wei
+            state.order.paid = order.paid
 
             return state
         })
@@ -114,9 +181,6 @@ class App extends React.Component {
             const response = await fetch(`${URL}/contract`)
             const json = await response.json()
             const { abi, address } = json.payload
-
-            console.log('abi', abi)
-            console.log('address', address)
 
             this.contract = new Contract(abi, address)
         } catch (err) {
@@ -147,14 +211,14 @@ class App extends React.Component {
                 { (this.state.order && (<Order { ...this.state.order } />)) }
                 { (this.state.conversion && (<Conversion currency={ this.state.order.currency } { ...this.state.conversion } />)) }
                 { (this.state.transaction && (<Transaction { ...this.state.transaction } />)) }
-
-                { (this.state.transaction == null) && (
+                { (this.state.polling || this.resolved) && (<Result polling={ this.state.polling } { ...this.state.order } />) }
+                { (this.state.transaction === null) && (
                 <fieldset style={{ marginBottom: '1em' }}>
+                    <legend>Actions</legend>
                     <button onClick={ this.convert }>Convert to Ether</button>
                     <button disabled={ this.state.payButtonDisabled } onClick={ this.pay }>Pay with MetaMask</button>
                 </fieldset>
                 ) }
-
             </div>
         )
     }
