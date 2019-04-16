@@ -27,6 +27,8 @@ export default async function web3Init() {
     const web3Version = web3.version.api || web3.version
     isConnected = provider.connected || provider.isConnected
 
+    console.log('web3version', web3Version)
+
     try {
         networkType = await web3.eth.net.getNetworkType()
     } catch (err) {

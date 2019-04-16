@@ -4,55 +4,66 @@ import './index.scss'
 import 'babel-polyfill'
 import web3Init from './web3init'
 import Contract from './Contract'
-import { stat } from 'fs';
+
 
 const DOMAIN = 'localhost'
 const PORT = '8080'
 const URL = `http://${DOMAIN}:${PORT}`
+const EURO = '€'
+const DOLLAR = '$'
 
+function getSymbol(currency) {
+    return (currency === 'EUR') ? EURO : DOLLAR
+}
 
 const Order = props => {
+    const symbol = getSymbol(props.currency)
+
     return (<fieldset style={{ marginBottom: '1em' }}>
         <legend>Order #{ props.id }</legend>
-        <h4>Total: ${ `${ props.amount } ${ props.currency }` }</h4>
+        <p><strong>Total: { `${ symbol }${ props.amount } ${ props.currency }` }</strong></p>
     </fieldset>)
 }
 
-const Result = props => {
-    let eth
+const Status = props => {
+    let status, text, url, eth, blockNumber
 
-    if (props.wei) {
-        eth = window.web3.utils.fromWei(props.wei)
-    } else {
-        eth = '...'
+    if (props.transaction) {
+        status = 'Broadcast'
+        text = 'Transaction broadcast, awaiting confirmation.'
+        url = `https://etherscan.io/tx/${ props.transaction.transactionHash }`
+    }
+
+    if (props.polling) {
+        status = 'Waiting'
+    }
+
+    if (props.order.paid && props.order.wei) {
+        status = 'Confirmed'
+        text = 'Your payment has been accepted.'
+        eth = window.web3.utils.fromWei(props.order.wei)
+        blockNumber = props.order.blockNumber
     }
 
     return (<fieldset style={{ marginBottom: '1em' }}>
-        <legend>{ (props.polling) ? 'Waiting' : 'Paid' }</legend>
-        <h4>Total paid : { eth } ETH</h4>
-        <small>Mined in block: { props.blockNumber }</small>
-    </fieldset>)
-}
+        <legend>Status: { status }</legend>
+        <p><strong>{ text }</strong></p>
 
-const Transaction = props => {
-    const url = `https://etherscan.io/tx/${ props.transactionHash }`
-
-    return (<fieldset style={{ marginBottom: '1em' }}>
-        <legend>Transaction</legend>
-        <p>Success! Your transaction has been broadcast and is going through the process of network confirmation.</p>
-        <small>Please wait while your transaction is being confirmed.</small><br />
-        <small>View the transaction on <a target="_blank" href={ url }>Etherscan.</a></small>
+        { (eth) && (<small style={{ display: 'block' }}>Total paid : { eth } ETH</small>) }
+        { (blockNumber) && (<small style={{ display: 'block' }}>Mined in block: { blockNumber }</small>) }
+        { (url) && (<small style={{ display: 'block' }}>View the transaction on <a target="_blank" href={ url }>Etherscan.</a></small>) }
     </fieldset>)
 }
 
 const Conversion = props => {
+    const symbol = getSymbol(props.currency)
+
     return (<fieldset style={{ marginBottom: '1em' }}>
         <legend>Conversion</legend>
-        <p>
-            <strong>Total: { props.amountInEther } ETH</strong><br />
-            <small>Current ETH price in { props.currency }: ${ props.etherPrice }</small><br />
-            <small>Source: <a href="https://coinmarketcap.com/">https://coinmarketcap.com/</a></small>
-        </p>
+        <p><strong>Total: { props.amountInEther } ETH</strong></p>
+
+        <small style={{ display: 'block' }}>Current ETH price in { props.currency }: { symbol }{ props.etherPrice }</small>
+        <small style={{ display: 'block' }}>Source: <a href="https://coinmarketcap.com/">https://coinmarketcap.com/</a></small>
     </fieldset>)
 }
 
@@ -206,12 +217,20 @@ class App extends React.Component {
     render() {
         return (
             <div>
-                <h1>Etherpay payment system</h1>
+                <h1>EtherPay</h1>
+                <h2><em>Pluggable Ethereum payment processor for order management systems.</em></h2>
+                <p>Proof of concept built with:</p>
+                <ul>
+                    <li>React 16.7.0</li>
+                    <li>MetaMask 1.0.0-beta.46</li>
+                    <li>Python 3.6/Flask 1.0.2/PyWeb3 4.9.1</li>
+                    <li>Solidity 0.5/Remix</li>
+                </ul>
+                <hr />
 
                 { (this.state.order && (<Order { ...this.state.order } />)) }
                 { (this.state.conversion && (<Conversion currency={ this.state.order.currency } { ...this.state.conversion } />)) }
-                { (this.state.transaction && (<Transaction { ...this.state.transaction } />)) }
-                { (this.state.polling || this.resolved) && (<Result polling={ this.state.polling } { ...this.state.order } />) }
+                { (this.state.polling || this.resolved) && (<Status {  ...this.state } />) }
                 { (this.state.transaction === null) && (
                 <fieldset style={{ marginBottom: '1em' }}>
                     <legend>Actions</legend>
