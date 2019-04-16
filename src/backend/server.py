@@ -2,16 +2,18 @@ import requests
 import asyncio
 import json
 import random
+import threading
 
+from time import sleep
 from math import floor
 from flask import Flask, jsonify, request
 
-# from web3.auto import w3
 from web3 import Web3
+w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:7545'))
 
-w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
+# from web3.auto import w3
 
-CONTRACT_ADDRESS = "0x4f33a6338ad3c1b1a211f0026d543af29a89c85d"
+CONTRACT_ADDRESS = Web3.toChecksumAddress('0x14094ca0f2f8a6bf0ad82aecca9ce0c2f5a406f8')
 CONTRACT_ABI = json.loads("""[
 	{
 		"constant": false,
@@ -289,7 +291,7 @@ def create_order():
     ORDERS.append(order)
     return order
 
-def getOrderById(id):
+def get_order_by_id(id):
     for order in ORDERS:
         if order['id'] == id:
             return order
@@ -298,35 +300,108 @@ def getOrderById(id):
 
 
 def handle_event(event):
-    print('HANDLE THE EVENT JACKASS', event)
-    # and whatever
+    print('event', event)
+    print(type(event))
+    print(dir(event))
 
-async def log_loop(event_filter, poll_interval):
-    print('async def log loop')
+    transaction_hash = event['transactionHash']
+
+    print('transactionHash', transaction_hash)
+
+    # receipt = w3.eth.waitForTransactionReceipt(event['transactionHash'])
+    # result = contract.events.greeting.processReceipt(receipt)
+    # print(result[0]['args'])
+    # print('HANDLE THE EVENT JACKASS', event)
+
+
+def handle_event_paid(event):
+    print('paid', event)
+    print(type(event))
+    print(dir(event))
+
+    transaction_hash = event.hex()
+    # transaction_hash = event['transactionHash']
+
+    print('transactionHash', transaction_hash)
+
+    # receipt = w3.eth.waitForTransactionReceipt(event['transactionHash'])
+    # result = contract.events.greeting.processReceipt(receipt)
+    # print(result[0]['args'])
+
+# async def log_loop(event_filter, poll_interval):
+#     while True:
+#         new_entries = event_filter.get_new_entries()
+#         print('new entries', new_entries)
+
+#         for event in new_entries:
+#             handle_event(event)
+
+#         await asyncio.sleep(poll_interval)
+
+async def log_loop_paid(event_filter, poll_interval):
+    print('log loop paid')
     while True:
-        for event in event_filter.get_new_entries():
-            handle_event(event)
+        # new_entries = event_filter.get_new_entries()
+        # print('new entries paid', new_entries)
+        new_entries = event_filter.get_all_entries()
+        print('new_entries', new_entries)
+        for event in new_entries:
+            handle_event_paid(event)
+
         await asyncio.sleep(poll_interval)
 
-def watch():
-    block_filter = w3.eth.filter('latest')
-    tx_filter = w3.eth.filter('pending')
+def watch(contract):
+    asyncio.set_event_loop(asyncio.new_event_loop())
+
+    # block_filter = w3.eth.filter('latest')
+    # refunded_filter = contract.events.refunded.createFilter(fromBlock='latest')
+    # paid_filter = contract.events.Paid.createFilter(fromBlock='latest')
+    # paid_filter = w3.eth.filter({
+    #     "address": contract.address,
+    #     "from_block": "latest"
+    # })
+
+    # paid_filter = contract.events.Paid.createFilter(fromBlock='latest')
+    # paid_filter = contract.events.Paid.createFilter(fromBlock=0)
+    # contract.eventFilter('Paid', { 'toBlock': 'latest', })
+
+    # paid_filter = contract.eventFilter('Paid', { 'fromBlock': 0, 'toBlock': 'latest' })
+    # paid_filter2 = contract.events.Paid.createFilter(
+    #     fromBlock='latest',
+    #     toBlock='latest',
+    #     argument_filters={}
+    # )
+
+    print('watch')
+    paid_filter3 = contract.eventFilter('Paid', {'fromBlock': 0,'toBlock': 'latest'});
+
+    # myfilter = mycontract.eventFilter('EventName', {'fromBlock': 0,'toBlock': 'latest'});
+    # eventlist = myfilter.get_all_entries()
+
+
+
+    # block_filter = w3.eth.filter('latest')
+
+    # tx_filter = w3.eth.filter('pending')
     loop = asyncio.get_event_loop()
+
     try:
         loop.run_until_complete(
             asyncio.gather(
-                log_loop(block_filter, 2),
-                log_loop(tx_filter, 2)
+                # log_loop(block_filter, 2),
+                # log_loop(tx_filter, 2),
+                # log_loop_paid(paid_filter2, 2)
+                log_loop_paid(paid_filter3, 2)
+                # ,
+                # log_loop_paid(paid_filter, 2)
             )
         )
+    except Exception as e:
+        print('exception', e)
     finally:
         loop.close()
 
-
-
-
 app = Flask(__name__)
-
 
 def round_down(n, d=8):
     d = int('1' + ('0' * d))
@@ -388,7 +463,7 @@ def order():
 
 @app.route('/order/<id>', methods=['GET'])
 def orderById(orderId):
-    order = getOrderById(orderId)
+    order = get_order_by_id(orderId)
 
     response = jsonify({
         'status': 'success',
@@ -400,7 +475,12 @@ def orderById(orderId):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port='8080')
-    # watch()
-
+    print('address', CONTRACT_ADDRESS)
     contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
+
+    worker = threading.Thread(target=watch, args=(contract,))
+    # daemon=True
+    worker.start()
+
+    app.run(debug=True, host='127.0.0.1', port='8080')
+
