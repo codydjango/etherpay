@@ -1,5 +1,0 @@
-#INFURA
-
-INFURA_PROJECT_ID = "c63d2ec360ce413ea4dc8b10e0cf1fac"
-INFURA_PROJECT_SECRET = "6ade39ef211843e3b4805ff28f45af91"
-INFURA_ENDPOINT = "https://ropsten.infura.io/v3/c63d2ec360ce413ea4dc8b10e0cf1fac"
