@@ -31,8 +31,11 @@ contract Etherpay is Ownable {
         // the backend will validate it, and if need be the organizer can
         // issue a refund to the sender
         _balance += msg.value;
+
         invoice.paid = true;
         invoice.from = msg.sender;
+
+        invoices[orderId] = invoice;
 
         emit Paid(orderId, msg.value, msg.sender);
 
