@@ -6,10 +6,13 @@ import random
 from math import floor
 from flask import Flask, jsonify, request
 
-from web3.auto import w3
+# from web3.auto import w3
+from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 
 CONTRACT_ADDRESS = "0x4f33a6338ad3c1b1a211f0026d543af29a89c85d"
-CONTRACT_ABI = """[
+CONTRACT_ABI = json.loads("""[
 	{
 		"constant": false,
 		"inputs": [],
@@ -264,9 +267,7 @@ CONTRACT_ABI = """[
 		"stateMutability": "view",
 		"type": "function"
 	}
-]"""
-
-
+]""")
 
 ORDERS = []
 
@@ -296,27 +297,30 @@ def getOrderById(id):
         raise Exception('not found')
 
 
-# def handle_event(event):
-#     print(event)
-#     # and whatever
+def handle_event(event):
+    print('HANDLE THE EVENT JACKASS', event)
+    # and whatever
 
-# async def log_loop(event_filter, poll_interval):
-#     while True:
-#         for event in event_filter.get_new_entries():
-#             handle_event(event)
-#         await asyncio.sleep(poll_interval)
+async def log_loop(event_filter, poll_interval):
+    print('async def log loop')
+    while True:
+        for event in event_filter.get_new_entries():
+            handle_event(event)
+        await asyncio.sleep(poll_interval)
 
-# def watch():
-#     block_filter = w3.eth.filter('latest')
-#     tx_filter = w3.eth.filter('pending')
-#     loop = asyncio.get_event_loop()
-#     try:
-#         loop.run_until_complete(
-#             asyncio.gather(
-#                 log_loop(block_filter, 2),
-#                 log_loop(tx_filter, 2)))
-#     finally:
-#         loop.close()
+def watch():
+    block_filter = w3.eth.filter('latest')
+    tx_filter = w3.eth.filter('pending')
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(
+            asyncio.gather(
+                log_loop(block_filter, 2),
+                log_loop(tx_filter, 2)
+            )
+        )
+    finally:
+        loop.close()
 
 
 
@@ -361,7 +365,7 @@ def contract():
     response = jsonify({
         'status': 'success',
         'payload': {
-            'abi': json.loads(CONTRACT_ABI),
+            'abi': CONTRACT_ABI,
             'address': CONTRACT_ADDRESS
         }
     })
@@ -381,6 +385,7 @@ def order():
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
+
 @app.route('/order/<id>', methods=['GET'])
 def orderById(orderId):
     order = getOrderById(orderId)
@@ -393,6 +398,9 @@ def orderById(orderId):
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
+
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port='8080')
     # watch()
+
+    contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
