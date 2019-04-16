@@ -1,11 +1,11 @@
-# EthDev
+# EtherPay Payment Processor
+
+This is a proof of concept project demonstrating how to process ethereum payments with a Python 3.5 backend.
 
 ### Installation
 run `npm install`
 
-### Develop
-
-##### HTML5 client
+##### HTML client
 run `npm run start`
 
 ##### Flask API
@@ -15,6 +15,3 @@ run `npm run server`
 
 ### Build
 run `npm run build`
-
-### Notes
-0x35122239ed172a4537D382AC449A6941a94e5E51
