@@ -16,3 +16,7 @@ run `npm run server`
 
 ### Build
 run `npm run build`
+
+### Notes
+* Using `parcel JS` for frontend babel compilation and js/scss dependency management.
+* Hardcoded to use Ganache GUI
