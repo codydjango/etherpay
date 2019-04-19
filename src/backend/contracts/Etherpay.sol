@@ -1,11 +1,15 @@
 pragma solidity ^0.5.0;
 
-import './Ownable.sol';
-
-contract Etherpay is Ownable {
+contract Etherpay {
     mapping(uint256 => Invoice) public invoices;
 
     uint256 private _balance;
+    address private _owner;
+
+    constructor () internal {
+        _owner = msg.sender;
+        emit OwnershipTransferred(address(0), _owner);
+    }
 
     struct Invoice {
         bool paid;
@@ -14,6 +18,7 @@ contract Etherpay is Ownable {
         bool refund;
     }
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event Paid(uint256 indexed orderId, uint256 indexed value, address indexed sender);
     event Refunded(uint256 indexed orderId, uint256 indexed value, address indexed sender);
 
@@ -70,5 +75,33 @@ contract Etherpay is Ownable {
 
     function destroy() public onlyOwner returns (bool) {
         selfdestruct(msg.sender);
+    }
+
+    function owner() public view returns (address) {
+        return _owner;
+    }
+
+    modifier onlyOwner() {
+        require(isOwner());
+        _;
+    }
+
+    function isOwner() public view returns (bool) {
+        return msg.sender == _owner;
+    }
+
+    function renounceOwnership() public onlyOwner {
+        emit OwnershipTransferred(_owner, address(0));
+        _owner = address(0);
+    }
+
+    function transferOwnership(address newOwner) public onlyOwner {
+        _transferOwnership(newOwner);
+    }
+
+    function _transferOwnership(address newOwner) internal {
+        require(newOwner != address(0));
+        emit OwnershipTransferred(_owner, newOwner);
+        _owner = newOwner;
     }
 }
