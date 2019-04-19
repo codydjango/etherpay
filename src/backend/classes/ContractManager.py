@@ -7,35 +7,35 @@ from web3 import Web3, HTTPProvider
 
 w3 = Web3(HTTPProvider('http://127.0.0.1:7545'))
 
-async def log_loop(event_filter, poll_interval, on_paid):
+async def log_loop(event_filter, poll_interval, callback_on_paid):
     while True:
         for event in event_filter.get_new_entries():
-            on_paid(order_id=int(event.args.orderId),
+            callback_on_paid(order_id=int(event.args.orderId),
                     wei=str(event.args.value),
                     sender=str(event.args.sender),
                     transaction_hash=str(event.transactionHash.hex()),
                     block_number=str(event.blockNumber))
         await asyncio.sleep(poll_interval)
 
-def monitor(contract, on_paid):
+def monitor(contract, callback_on_paid):
     sleep(5)
     asyncio.set_event_loop(asyncio.new_event_loop())
     paid_filter = contract.events.Paid.createFilter(fromBlock='latest')
     loop = asyncio.get_event_loop()
 
     try:
-        loop.run_until_complete(asyncio.gather(log_loop(paid_filter, 2, on_paid)))
+        loop.run_until_complete(asyncio.gather(log_loop(paid_filter, 2, callback_on_paid)))
     except Exception as e:
         print('exception', e)
     finally:
         loop.close()
+
 
 class ContractManager:
     def __init__(self):
         self._contract = None
         self._contract_address = None
         self._watching = False
-
 
     def update(self, **kwargs):
         self._abi = kwargs.get('abi', None)
@@ -82,16 +82,14 @@ class ContractManager:
             'block_number': block_number
         }
 
-        print('receipt', self._receipt)
-
         self._contract_address = contract_address
 
         return contract_address
 
-    def on_paid(self, fn):
+    def on_paid(self, callback):
         if not self._watching:
             self._watching = True
-            t = threading.Thread(target=monitor, args=(self._contract, fn), daemon=True)
+            t = threading.Thread(target=monitor, args=(self._contract, callback), daemon=True)
             t.start()
 
     def get_deployed_contract_address(self):
